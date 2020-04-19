@@ -1,0 +1,13 @@
+{
+	"autodeskProduct":	"Fusion360",
+	"type":	"addin",
+	"id":	"51e13efe-8453-49c7-becd-bfed6571c1cf",
+	"author":	"Florian Pommerening",
+	"description":	{
+		"":	"An add-in for making finger joints."
+	},
+	"version":	"1.0.0",
+	"runOnStartup":	true,
+	"supportedOS":	"windows|mac",
+	"editEnabled":	true
+}
