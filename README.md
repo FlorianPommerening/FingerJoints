@@ -69,13 +69,17 @@ copy and the original. This will slice the body along your chosen axis.
 
 If you find any issues with the add-in, please report them on [Github][issuetracker]
 
-## TODO / Help wanted
+## Contributing
 
 If you have ideas how to improve the add-in, you can create an issue on [Github][issuetracker]. Since I am working on this in my free time I cannot promise I will get to it, though. Pull requests for fixes and new features are very welcome.
 
-The add-in is currently not parametric, so updating the underlying geometry will not update the placement or size of the fingers. I'm not sure this is possible with the current API (there is a [related request on the Fusion 360 IdeaStation][ideastation]). If you have an idea of how to implement this, please get in touch.
+The add-in is currently not parametric, so updating the underlying geometry will not update the placement or size of the fingers. I'm not sure this is possible with the current API (there is a [related request on the Fusion 360 IdeaStation][ideastation] and an [extension to the API][customfeatures] currently in preview mode). If you have an idea of how to implement this, please get in touch. Custom features 
 
-I am not an artist, so the icons are still [Programmer art](https://en.wikipedia.org/wiki/Programmer_art). I'd be happy to replace them with something closer to the style of the built-in commands. 
+I am not an artist, so the icons are still [Programmer art](https://en.wikipedia.org/wiki/Programmer_art). I'd be happy to replace them with something closer to the style of the built-in commands. If you want to help with that, get in touch.
+
+If you find this add-in useful, I would like to hear from you and see pictures of what you created with it. If you want, you can also buy me a coffee by clicking on the link below.
+
+[![buy me a coffee][bmcbutton]](https://www.buymeacoffee.com/flogo)
 
 ## License
 
@@ -88,3 +92,5 @@ This add-in is licensed under a [Creative Commons Attribution-NonCommercial-Shar
 [by-nc-sa-link]: http://creativecommons.org/licenses/by-nc-sa/4.0/
 [issuetracker]: https://github.com/FlorianPommerening/FingerJoints/issues
 [ideastation]: https://forums.autodesk.com/t5/fusion-360-ideastation/allow-add-ins-to-be-fully-parametric-and-represented-in-the/idi-p/8660436
+[customfeatures]: http://help.autodesk.com/view/fusion360/ENU/?guid=GUID-FA7EF128-1DE0-4115-89A3-795551E2DEF2
+[bmcbutton]: https://cdn.buymeacoffee.com/buttons/default-blue.png
