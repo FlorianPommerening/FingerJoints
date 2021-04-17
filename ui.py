@@ -82,6 +82,9 @@ class FingerJointUI(object):
         defaultMinFingerSize = adsk.core.ValueInput.createByReal(defaults.minFingerSize)
         self._inputMinFingerSize = inputs.addValueInput('inputMinFingerSize', 'Minimal Finger Size', defaultUnit, defaultMinFingerSize)
 
+        defaultGap = adsk.core.ValueInput.createByReal(defaults.gap)
+        self._inputGap = inputs.addValueInput('inputGap', 'Gap', defaultUnit, defaultGap)
+
         self._inputIsPreviewEnabled = inputs.addBoolValueInput('inputIsPreviewEnabled', 'Show Preview', True, '', defaults.isPreviewEnabled)
 
         self._inputErrorMessage = inputs.addTextBoxCommandInput('inputErrorMessage', '', '', 3, True)
@@ -140,6 +143,9 @@ class FingerJointUI(object):
     def getMinFingerSize(self):
         return self._getDistanceInputValue(self._inputMinFingerSize)
 
+    def getGap(self):
+        return self._getDistanceInputValue(self._inputGap)
+
     def isPreviewEnabled(self):
         return self._inputIsPreviewEnabled.value
 
@@ -176,6 +182,7 @@ class FingerJointUI(object):
             options.minNotchSize = self.getMinNotchSize()
         if self.getMinFingerSize() is not None:
             options.minFingerSize = self.getMinFingerSize()
+        options.gap = self.getGap()
         options.isPreviewEnabled = self.isPreviewEnabled()
 
     def areInputsValid(self):
