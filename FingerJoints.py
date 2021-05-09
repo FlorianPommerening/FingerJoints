@@ -78,7 +78,7 @@ def run(context):
     global addin
     try:
         if addin is not None:
-            stop()
+            stop({'IsApplicationClosing': False})
         addin = FingerJointAddIn()
         addin.start()
     except:
