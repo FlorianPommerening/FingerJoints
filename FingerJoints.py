@@ -18,7 +18,7 @@ from . import ui
 from . import geometry
 
 # Global variable to hold the add-in (created in run(), destroyed in stop())
-addin = None
+addIn = None
 
 
 class FingerJointCommand(commands.RunningCommandBase):
@@ -74,17 +74,17 @@ class FingerJointAddIn(object):
 
 
 def run(context):
-    global addin
+    global addIn
     try:
-        if addin is not None:
+        if addIn is not None:
             stop({'IsApplicationClosing': False})
-        addin = FingerJointAddIn()
-        addin.start()
+        addIn = FingerJointAddIn()
+        addIn.start()
     except:
         ui.reportError('Uncaught exception', True)
 
 
 def stop(context):
-    global addin
-    addin.stop()
-    addin = None
+    global addIn
+    addIn.stop()
+    addIn = None
