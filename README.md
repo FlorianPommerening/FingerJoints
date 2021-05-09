@@ -39,6 +39,11 @@ Finally, instead of fixing the number of fingers, we might want to have both fin
 ![Dynamic finger number with fixed finger size](resources/doc/usage4.png)
 
 
+Starting with version 1.1 the add-in can also add a small gap between the fingers and notches for an easier fit
+of the produces parts.
+
+![Gaps between notches and fingers](resources/doc/gaps.png)
+
 Of course, the objects you join do not have to be rectangular and can overlap in multiple places.
 
 ![General objects can be joined](resources/doc/usage5.png)
