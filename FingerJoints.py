@@ -1,5 +1,5 @@
-#Author-Florian Pommerening
-#Description-An Add-In for making finger joints.
+# Author: Florian Pommerening
+# Description: An Add-In for making finger joints.
 
 # Select two overlapping bodies and a direction. The overlap is cut along the
 # direction multiple times resulting in the individual fingers/notches. We
@@ -16,7 +16,6 @@ from . import commands
 from . import options
 from . import ui
 from . import geometry
-
 
 # Global variable to hold the add-in (created in run(), destroyed in stop())
 addin = None
@@ -67,8 +66,8 @@ class FingerJointAddIn(object):
 
     def start(self):
         self.button.addToUI('Finger Joint',
-            'Creates a finger joint from the overlap of two bodies',
-            'resources/ui/command_button')
+                            'Creates a finger joint from the overlap of two bodies',
+                            'resources/ui/command_button')
 
     def stop(self):
         self.button.removeFromUI()
