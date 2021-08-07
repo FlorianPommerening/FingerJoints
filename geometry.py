@@ -97,27 +97,7 @@ def createBodyFromOverlap(body0, body1):
     return overlapBody
 
 
-def cutOutOfBody(tagetBody, toolBody):
-    app = adsk.core.Application.get()
-    root = app.activeProduct.rootComponent
-    combineFeatures = root.features.combineFeatures
-
-    # Add the toolBody to the document so they can interact with the other bodies in the document.
-    feature = root.features.baseFeatures.add()
-    feature.startEdit()
-    root.bRepBodies.add(toolBody, feature)
-    feature.finishEdit()
-    
-    # Create the cut feature that cuts all bodies in the new feature out of the taget body.
-    allBodiesInTool = adsk.core.ObjectCollection.create()
-    for i in range(feature.bodies.count):
-        allBodiesInTool.add(feature.bodies.item(i))
-    cutInput = combineFeatures.createInput(tagetBody, allBodiesInTool)
-    cutInput.operation = adsk.fusion.FeatureOperations.CutFeatureOperation
-    combineFeature = combineFeatures.add(cutInput)
-
-
-def createFingerJoint(body0, body1, direction, options):
+def createToolBodies(body0, body1, direction, options):
     coordinateSystem = CoordinateSystem(direction)
     overlap = createBodyFromOverlap(body0, body1)
     coordinateSystem.transformToLocalCoordinates(overlap)
@@ -133,13 +113,9 @@ def createFingerJoint(body0, body1, direction, options):
 
     fingerToolBody = createToolBody(overlap, fingerDimensions)
     coordinateSystem.transformToGlobalCoordinates(fingerToolBody)
-    cutOutOfBody(body0, fingerToolBody)
-
     notchToolBody = createToolBody(overlap, notchDimensions)
     coordinateSystem.transformToGlobalCoordinates(notchToolBody)
-    cutOutOfBody(body1, notchToolBody)
-
-    return True
+    return fingerToolBody, notchToolBody
 
 
 def defineToolBodyDimensions(size, options):
