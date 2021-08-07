@@ -110,13 +110,22 @@ class FingerJointUI(object):
         if self._inputBody0.selectionCount > 0:
             return self._inputBody0.selection(0).entity
 
+    def selectBody0(self, body):
+        self._inputBody0.addSelection(body)
+
     def getBody1(self):
         if self._inputBody1.selectionCount > 0:
             return self._inputBody1.selection(0).entity
 
+    def selectBody1(self, body):
+        self._inputBody1.addSelection(body)
+
     def getDirection(self):
         if self._inputDirection.selectionCount > 0:
             return self._inputDirection.selection(0).entity
+
+    def selectDirection(self, direction):
+        self._inputDirection.addSelection(direction)
 
     def getPlacementType(self):
         return self._placementTypesByIndex[self._inputPlacementType.selectedItem.index]
