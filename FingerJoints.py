@@ -40,9 +40,9 @@ def createCutFeature(parentComponent, targetBody, toolBodyFeature):
     return cutFeature
 
 
-class FingerJointCommand(commands.RunningCommandBase):
+class CreateFingerJointCommand(commands.RunningCommandBase):
     def __init__(self, args: adsk.core.CommandCreatedEventArgs):
-        super(FingerJointCommand, self).__init__(args)
+        super(CreateFingerJointCommand, self).__init__(args)
         self.options = options.FingerJointOptions()
         self.ui = ui.FingerJointUI(args.command.commandInputs, self.options)
 
@@ -95,22 +95,19 @@ class FingerJointCommand(commands.RunningCommandBase):
         createCutFeature(activeComponent, body1, tool1Feature)
 
     def onDestroy(self, args: adsk.core.CommandEventArgs):
-        super(FingerJointCommand, self).onDestroy(args)
+        super(CreateFingerJointCommand, self).onDestroy(args)
         if args.terminationReason == adsk.core.CommandTerminationReason.CompletedTerminationReason:
             self.options.writeDefaults()
 
 
-class FingerJointAddIn(object):
-    def __init__(self):
-        self.button = commands.CommandButton('FingerJointBtn', 'SolidModifyPanel', FingerJointCommand)
-
-    def start(self):
-        self.button.addToUI('Finger Joint',
-                            'Creates a finger joint from the overlap of two bodies',
-                            'resources/ui/command_button')
-
-    def stop(self):
-        self.button.removeFromUI()
+class FingerJointAddIn(commands.AddIn):
+    COMMAND_ID = 'fpFingerJoints'
+    FEATURE_NAME = 'Finger Joint'
+    RESOURCE_FOLDER = 'resources/ui/command_button'
+    CREATE_TOOLTIP='Creates a finger joint from the overlap of two bodies'
+    EDIT_TOOLTIP='Edit finger joint'
+    PANEL_NAME='SolidModifyPanel'
+    RUNNING_CREATE_COMMAND_CLASS = CreateFingerJointCommand
 
 
 def run(context):
@@ -119,12 +116,12 @@ def run(context):
         if addIn is not None:
             stop({'IsApplicationClosing': False})
         addIn = FingerJointAddIn()
-        addIn.start()
+        addIn.addToUI()
     except:
         ui.reportError('Uncaught exception', True)
 
 
 def stop(context):
     global addIn
-    addIn.stop()
+    addIn.removeFromUI()
     addIn = None

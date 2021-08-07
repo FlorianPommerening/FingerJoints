@@ -7,6 +7,20 @@ from . import ui
 # callback handlers are not GC'd.
 running_commands = set()
 
+def makeForwardingHandler(handler_cls, callback):
+    class ForwardingHandler(handler_cls):
+        def __init__(self, callback):
+            super().__init__()
+            self.callback = callback
+
+        def notify(self, args):
+            try:
+                self.callback(args)
+            except:
+                ui.reportError('Callback method failed', True)
+    return ForwardingHandler(callback)
+
+
 class RunningCommandBase(object):
     """
     Base class to keep persistent data during the lifetime of a command from
@@ -18,6 +32,7 @@ class RunningCommandBase(object):
     def __init__(self, args):
         running_commands.add(self)
 
+    def onCreate(self, args):
         cmd = adsk.core.Command.cast(args.command)            
 
         self._inputChangedHandler = makeForwardingHandler(
@@ -66,66 +81,58 @@ class RunningCommandBase(object):
         running_commands.remove(self)
 
 
-class CommandCreatedHandler(adsk.core.CommandCreatedEventHandler):
-    def __init__(self, runningCommandClass):
-        super().__init__()
-        self.runningCommandClass = runningCommandClass
+class AddIn(object):
+    # Defaults that are None have to be overridden in derived classes.
+    COMMAND_ID = None
+    FEATURE_NAME = None
+    RESOURCE_FOLDER = None
+    CREATE_TOOLTIP=''
+    EDIT_TOOLTIP=''
+    PANEL_NAME=None
+    RUNNING_CREATE_COMMAND_CLASS = None
 
-    def notify(self, args):
-        try:
-            running_command = self.runningCommandClass(args)
-            running_command.onCreated(args)
-        except:
-            ui.reportError('Command creation callback method failed', True)
-
-
-def makeForwardingHandler(handler_cls, callback):
-    class ForwardingHandler(handler_cls):
-        def __init__(self, callback):
-            super().__init__()
-            self.callback = callback
-
-        def notify(self, args):
-            try:
-                self.callback(args)
-            except:
-                ui.reportError('Callback method failed', True)
-    return ForwardingHandler(callback)
-
-
-class CommandButton(object):
-    def __init__(self, commandID, panelName, commandDataClass):
-        self.commandID = commandID
-        self.panelName = panelName
-
+    def __init__(self):
         fusion = adsk.core.Application.get()
         self.fusionUI = fusion.userInterface
-        self.creationHandler = CommandCreatedHandler(commandDataClass)
 
-    def addToUI(self, name, tooltip='', resourceFolder=''):
+        # Add handler for creating the feature.
+        self._createHandler = makeForwardingHandler(
+            adsk.core.CommandCreatedEventHandler, self._onCreate)
+
+    def _onCreate(self, args):
+        running_command = self.RUNNING_CREATE_COMMAND_CLASS(args)
+        running_command.onCreate(args)
+
+    def _getCreateButtonID(self):
+        return self.COMMAND_ID + 'Create'
+
+    def _getCreateButtonName(self):
+        return self.FEATURE_NAME
+
+    def addToUI(self):
         # If there are existing instances of the button, clean them up first.
         try:
             self.removeFromUI()
         except:
             pass
 
-        # Create a command definition and button for it.
-        commandDefinition = self.fusionUI.commandDefinitions.addButtonDefinition(
-            self.commandID, name, tooltip, resourceFolder)
-        commandDefinition.commandCreated.add(self.creationHandler)
+        # Create a command for creating the feature.
+        createCommandDefinition = self.fusionUI.commandDefinitions.addButtonDefinition(
+            self._getCreateButtonID(), self._getCreateButtonName(), self.CREATE_TOOLTIP, self.RESOURCE_FOLDER)
+        createCommandDefinition.commandCreated.add(self._createHandler)
 
-        panel = self.fusionUI.allToolbarPanels.itemById(self.panelName)
-        buttonControl = panel.controls.addCommand(commandDefinition)
-
-        # Make the button available in the panel.
+        # Add a button to the UI.
+        panel = self.fusionUI.allToolbarPanels.itemById(self.PANEL_NAME)
+        buttonControl = panel.controls.addCommand(createCommandDefinition)
         buttonControl.isPromotedByDefault = True
         buttonControl.isPromoted = True
 
     def removeFromUI(self):
-        commandDefinition = self.fusionUI.commandDefinitions.itemById(self.commandID)
-        if commandDefinition:
-            commandDefinition.deleteMe()
-        panel = self.fusionUI.allToolbarPanels.itemById(self.panelName)
-        buttonControl = panel.controls.itemById(self.commandID)
+        createCommandDefinition = self.fusionUI.commandDefinitions.itemById(self._getCreateButtonID())
+        if createCommandDefinition:
+            createCommandDefinition.deleteMe()
+
+        panel = self.fusionUI.allToolbarPanels.itemById(self.PANEL_NAME)
+        buttonControl = panel.controls.itemById(self._getCreateButtonID())
         if buttonControl:
             buttonControl.deleteMe()

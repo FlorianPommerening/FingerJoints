@@ -158,8 +158,8 @@ class FingerJointUI(object):
         # value is x afterwards  (e.g., '' is turned into '<br />').
         if msg:
             formattedText = '<p style="color:red">{}</p>'.format(msg)
-        if self._inputErrorMessage.formattedText != formattedText:
-            self._inputErrorMessage.formattedText = formattedText
+            if self._inputErrorMessage.formattedText != formattedText:
+                self._inputErrorMessage.formattedText = formattedText
         else:
             if self._inputErrorMessage.text != '':
                 self._inputErrorMessage.text = ''
