@@ -83,7 +83,10 @@ class FingerJointUI(object):
         self._inputMinFingerSize = inputs.addValueInput('inputMinFingerSize', 'Minimal Finger Size', defaultUnit, defaultMinFingerSize)
 
         defaultGap = adsk.core.ValueInput.createByReal(defaults.gap)
-        self._inputGap = inputs.addValueInput('inputGap', 'Gap', defaultUnit, defaultGap)
+        self._inputGap = inputs.addValueInput('inputGap', 'Gap between fingers', defaultUnit, defaultGap)
+
+        defaultGapToPart = adsk.core.ValueInput.createByReal(defaults.gapToPart)
+        self._inputGapToPart = inputs.addValueInput('inputGapToPart', 'Gap to part\n(experimental)', defaultUnit, defaultGapToPart)
 
         self._inputIsPreviewEnabled = inputs.addBoolValueInput('inputIsPreviewEnabled', 'Show Preview', True, '', defaults.isPreviewEnabled)
 
@@ -146,6 +149,9 @@ class FingerJointUI(object):
     def getGap(self):
         return self._getDistanceInputValue(self._inputGap)
 
+    def getGapToPart(self):
+        return self._getDistanceInputValue(self._inputGapToPart)
+
     def isPreviewEnabled(self):
         return self._inputIsPreviewEnabled.value
 
@@ -186,6 +192,7 @@ class FingerJointUI(object):
         if self.getMinFingerSize() is not None:
             options.minFingerSize = self.getMinFingerSize()
         options.gap = self.getGap()
+        options.gapToPart = self.getGapToPart()
         options.isPreviewEnabled = self.isPreviewEnabled()
 
     def areInputsValid(self):

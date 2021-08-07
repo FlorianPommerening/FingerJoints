@@ -33,6 +33,7 @@ class FingerJointOptions(object):
         self.minNotchSize = 2
         self.fixedNumFingers = 3
         self.gap = 0
+        self.gapToPart = 0
         self.isPreviewEnabled = True
         self.readDefaults()
 
@@ -47,6 +48,7 @@ class FingerJointOptions(object):
             'minNotchSize': self.minNotchSize,
             'fixedNumFingers': self.fixedNumFingers,
             'gap': self.gap,
+            'gapToPart': self.gapToPart,
             'isPreviewEnabled': self.isPreviewEnabled,
         }
         with open(self.DEFAULTS_FILENAME, 'w', encoding='UTF-8') as json_file:
@@ -70,5 +72,6 @@ class FingerJointOptions(object):
         self.minNotchSize = defaultData.get('minNotchSize', self.minNotchSize)
         self.fixedNumFingers = defaultData.get('fixedNumFingers', self.fixedNumFingers)
         self.gap = defaultData.get('gap', self.gap)
+        self.gapToPart = defaultData.get('gapToPart', self.gapToPart)
         self.isPreviewEnabled = defaultData.get('isPreviewEnabled', self.isPreviewEnabled)
 

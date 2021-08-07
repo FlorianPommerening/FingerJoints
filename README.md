@@ -40,9 +40,16 @@ Finally, instead of fixing the number of fingers, we might want to have both fin
 
 
 Starting with version 1.1 the add-in can also add a small gap between the fingers and notches for an easier fit
-of the produces parts.
+of the produced parts.
 
 ![Gaps between notches and fingers](resources/doc/gaps.png)
+
+An experimental option of adding a gap between the joint and the parts was added in version 1.2.
+Currently, the gap size will not always match the entered value and might be different on both parts
+if their overlap is not a square. Use at your own risk and experiment with different settings
+for a useful distance.
+
+![Gaps between fingers and parts](resources/doc/gaps2.png)
 
 Of course, the objects you join do not have to be rectangular and can overlap in multiple places.
 

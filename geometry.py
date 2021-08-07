@@ -16,27 +16,44 @@ def findOrthogonalUnitVectors(z):
 
 
 class CoordinateSystem(object):
-    def __init__(self, direction):
+    def __init__(self, direction, body):
+        """Creates a coordinate system where the z axis is in the given direction
+        and the bounding box of the given body is centered around this axis"""
+        # Define the axes of the coordinate system.
         if isinstance(direction, adsk.fusion.BRepEdge):
-            self.origin = direction.startVertex.geometry
-            self.direction = self.origin.vectorTo(direction.endVertex.geometry)
+            origin = direction.startVertex.geometry
+            zAxis = origin.vectorTo(direction.endVertex.geometry)
         else:
             assert(isinstance(direction, adsk.fusion.SketchLine))
-            self.origin = direction.startSketchPoint.worldGeometry
-            self.direction = self.origin.vectorTo(direction.endSketchPoint.worldGeometry)
-        self.direction.normalize()
+            origin = direction.startSketchPoint.worldGeometry
+            zAxis = origin.vectorTo(direction.endSketchPoint.worldGeometry)
+        zAxis.normalize()
+        xAxis, yAxis = findOrthogonalUnitVectors(zAxis)
 
-        xAxis, yAxis = findOrthogonalUnitVectors(self.direction)
+        # Get a preliminary transformation (axis are correct but origin will be shifted later).
+        preliminaryTransform = adsk.core.Matrix3D.create()
+        preliminaryTransform.setWithCoordinateSystem(origin, xAxis, yAxis, zAxis)
+        inversePreliminaryTransform = preliminaryTransform.copy()
+        inversePreliminaryTransform.invert()
+
+        # Find center of body's bounding box in local coordinates.
+        temporaryBRepManager = adsk.fusion.TemporaryBRepManager.get()
+        body_local = temporaryBRepManager.copy(body)
+        temporaryBRepManager.transform(body_local, inversePreliminaryTransform)
+        bb = body_local.boundingBox
+        minx, miny, minz = bb.minPoint.asArray()
+        maxx, maxy, maxz = bb.maxPoint.asArray()
+        cx = (minx + maxx) / 2
+        cy = (miny + maxy) / 2
+
+        # Create the coordinate system with the correct origin
+        origin = adsk.core.Point3D.create(cx, cy, minz)
+        origin.transformBy(preliminaryTransform)
         self.transform = adsk.core.Matrix3D.create()
-        self.transform.setWithCoordinateSystem(
-            self.origin,
-            xAxis,
-            yAxis, 
-            self.direction)
-
+        self.transform.setWithCoordinateSystem(origin, xAxis, yAxis, zAxis)
         self.inverseTransform = self.transform.copy()
         self.inverseTransform.invert()
-    
+
     def transformToLocalCoordinates(self, body):
         temporaryBRepManager = adsk.fusion.TemporaryBRepManager.get()
         temporaryBRepManager.transform(body, self.inverseTransform)
@@ -53,7 +70,7 @@ def createBox(x, y, z, length, width, height):
     return adsk.core.OrientedBoundingBox3D.create(centerPoint, lengthDirection, widthDirection, length, width, height)
 
 
-def createToolBody(body, slices, debug=False):
+def createToolBody(body, slices, gapToPart, debug=False):
     bb = body.boundingBox
     minx, miny, minz = bb.minPoint.asArray()
     maxx, maxy, maxz = bb.maxPoint.asArray()
@@ -87,6 +104,21 @@ def createToolBody(body, slices, debug=False):
         feature.finishEdit()
 
     temporaryBRepManager.booleanOperation(targetBody, body, adsk.fusion.BooleanTypes.IntersectionBooleanType)
+
+    # Scale up tool body, so its length and width are increased by the gap we want to leave to the other part.
+    # The correct way to do so would be to compute an offset. Scaling works if the intersection is a square but
+    # will otherwise have a too large gap on one side. Note that we have to scale in x and y direction with the
+    # same factor because the axes may not be aligned with the axis of the intersection.
+    scaleFactorX = (length + 2*gapToPart) / length
+    scaleFactorY = (width + 2*gapToPart) / width
+    scaleFactor = max(scaleFactorX, scaleFactorY)
+    transform = adsk.core.Matrix3D.create()
+    transform.setWithArray([scaleFactor, 0,           0, 0,
+                            0,           scaleFactor, 0, 0,
+                            0,           0,           1, 0,
+                            0,           0,           0, 1])
+    temporaryBRepManager.transform(targetBody, transform)
+
     return targetBody
 
 
@@ -98,8 +130,8 @@ def createBodyFromOverlap(body0, body1):
 
 
 def createToolBodies(body0, body1, direction, options):
-    coordinateSystem = CoordinateSystem(direction)
     overlap = createBodyFromOverlap(body0, body1)
+    coordinateSystem = CoordinateSystem(direction, overlap)
     coordinateSystem.transformToLocalCoordinates(overlap)
     # TODO: look at MeasureManager.getOrientedBoundingBox to see if this can be simplified, probably with direction.geometry/worldGeometry
 
@@ -111,9 +143,9 @@ def createToolBodies(body0, body1, direction, options):
     if fingerDimensions is None or notchDimensions is None:
         return False
 
-    fingerToolBody = createToolBody(overlap, fingerDimensions)
+    fingerToolBody = createToolBody(overlap, fingerDimensions, options.gapToPart)
     coordinateSystem.transformToGlobalCoordinates(fingerToolBody)
-    notchToolBody = createToolBody(overlap, notchDimensions)
+    notchToolBody = createToolBody(overlap, notchDimensions, options.gapToPart)
     coordinateSystem.transformToGlobalCoordinates(notchToolBody)
     return fingerToolBody, notchToolBody
 
