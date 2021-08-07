@@ -150,16 +150,19 @@ class FingerJointUI(object):
         return self._inputIsPreviewEnabled.value
 
     def setInputErrorMessage(self, msg):
-        if msg:
-            formattedText = '<p style="color:red">{}</p>'.format(msg)
-        else:
-            formattedText = ''
         # We guard this statement to prevent an infinite loop of setting
         # the value, validating the input because an input changed, computing
         # the preview because the validation was successfull, and setting the
         #  value to '' there.
+        # Unfortunately, setting the formatted value to x doesn't mean that the
+        # value is x afterwards  (e.g., '' is turned into '<br />').
+        if msg:
+            formattedText = '<p style="color:red">{}</p>'.format(msg)
         if self._inputErrorMessage.formattedText != formattedText:
             self._inputErrorMessage.formattedText = formattedText
+        else:
+            if self._inputErrorMessage.text != '':
+                self._inputErrorMessage.text = ''
 
     def focusNextSelectionInput(self):
         for input in self._inputs:
