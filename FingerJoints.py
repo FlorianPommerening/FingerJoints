@@ -46,6 +46,9 @@ class CreateFingerJointCommand(commands.RunningCommandBase):
         self.options = options.FingerJointOptions()
         self.ui = ui.FingerJointUI(args.command.commandInputs, self.options)
 
+    def onCreated(self, args: adsk.core.Command):
+        args.isPositionDependent = True
+
     def onInputChanged(self, args: adsk.core.InputChangedEventArgs):
         self.ui.updateVisibility()
         self.ui.focusNextSelectionInput()

@@ -33,7 +33,7 @@ class RunningCommandBase(object):
         running_commands.add(self)
 
     def onCreate(self, args):
-        cmd = adsk.core.Command.cast(args.command)            
+        cmd = adsk.core.Command.cast(args.command)
 
         self._inputChangedHandler = makeForwardingHandler(
             adsk.core.InputChangedEventHandler, self.onInputChanged)
@@ -58,6 +58,7 @@ class RunningCommandBase(object):
         self._destroyHandler = makeForwardingHandler(
             adsk.core.CommandEventHandler, self.onDestroy)
         cmd.destroy.add(self._destroyHandler)
+        self.onCreated(cmd)
 
     def onCreated(self, args):
         pass
