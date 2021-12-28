@@ -70,7 +70,7 @@ def createBox(x, y, z, length, width, height):
     return adsk.core.OrientedBoundingBox3D.create(centerPoint, lengthDirection, widthDirection, length, width, height)
 
 
-def createToolBody(body, slices, gapToPart, debug=False):
+def createToolBody(body, slices, inputs, debug=False):
     bb = body.boundingBox
     minx, miny, minz = bb.minPoint.asArray()
     maxx, maxy, maxz = bb.maxPoint.asArray()
@@ -109,6 +109,7 @@ def createToolBody(body, slices, gapToPart, debug=False):
     # The correct way to do so would be to compute an offset. Scaling works if the intersection is a square but
     # will otherwise have a too large gap on one side. Note that we have to scale in x and y direction with the
     # same factor because the axes may not be aligned with the axis of the intersection.
+    gapToPart = inputs.gapToPart.value
     scaleFactorX = (length + 2*gapToPart) / length
     scaleFactorY = (width + 2*gapToPart) / width
     scaleFactor = max(scaleFactorX, scaleFactorY)
@@ -129,9 +130,9 @@ def createBodyFromOverlap(body0, body1):
     return overlapBody
 
 
-def createToolBodies(body0, body1, direction, options):
-    overlap = createBodyFromOverlap(body0, body1)
-    coordinateSystem = CoordinateSystem(direction, overlap)
+def createToolBodies(inputs):
+    overlap = createBodyFromOverlap(inputs.body0, inputs.body1)
+    coordinateSystem = CoordinateSystem(inputs.direction, overlap)
     coordinateSystem.transformToLocalCoordinates(overlap)
     # TODO: look at MeasureManager.getOrientedBoundingBox to see if this can be simplified, probably with direction.geometry/worldGeometry
 
@@ -139,25 +140,33 @@ def createToolBodies(body0, body1, direction, options):
     height = bb.maxPoint.z - bb.minPoint.z
     if height <= 0:
         return True
-    fingerDimensions, notchDimensions = defineToolBodyDimensions(height, options)
+    fingerDimensions, notchDimensions = defineToolBodyDimensions(height, inputs)
     if fingerDimensions is None or notchDimensions is None:
         return False
 
-    fingerToolBody = createToolBody(overlap, fingerDimensions, options.gapToPart)
+    fingerToolBody = createToolBody(overlap, fingerDimensions, inputs)
     coordinateSystem.transformToGlobalCoordinates(fingerToolBody)
-    notchToolBody = createToolBody(overlap, notchDimensions, options.gapToPart)
+    notchToolBody = createToolBody(overlap, notchDimensions, inputs)
     coordinateSystem.transformToGlobalCoordinates(notchToolBody)
     return fingerToolBody, notchToolBody
 
 
-def defineToolBodyDimensions(size, options):
-    gapSize = options.gap
-    if options.isNumberOfFingersFixed:
+def defineToolBodyDimensions(size, inputs):
+    placementType = inputs.placementType
+    dynamicSizeType = inputs.dynamicSizeType
+    minFingerSize = inputs.minFingerSize.value
+    minNotchSize = inputs.minNotchSize.value
+    fixedNotchSize = inputs.fixedNotchSize.value
+    fixedFingerSize = inputs.fixedFingerSize.value
+    isNumberOfFingersFixed = inputs.isNumberOfFingersFixed
+    fixedNumFingers = inputs.fixedNumFingers
+    gapSize = inputs.gap.value
+    if isNumberOfFingersFixed:
         # The number of fingers is given, the number of notches depends on their placement.
-        numFingers = options.fixedNumFingers
-        if options.placementType == PlacementType.FINGERS_OUTSIDE:
+        numFingers = fixedNumFingers
+        if placementType == PlacementType.FINGERS_OUTSIDE:
             numNotches = numFingers - 1
-        elif options.placementType == PlacementType.NOTCHES_OUTSIDE:
+        elif placementType == PlacementType.NOTCHES_OUTSIDE:
             numNotches = numFingers + 1
         else:
             numNotches = numFingers
@@ -165,32 +174,32 @@ def defineToolBodyDimensions(size, options):
         numGaps = numFingers + numNotches - 1
         totalGapSize = numGaps * gapSize
         # Once the number of fingers and notches is fixed, their size can be determined.
-        if options.dynamicSizeType == DynamicSizeType.EQUAL_NOTCH_AND_FINGER_SIZE:
+        if dynamicSizeType == DynamicSizeType.EQUAL_NOTCH_AND_FINGER_SIZE:
             fingerSize = (size - totalGapSize) / (numFingers + numNotches)
             notchSize = fingerSize
-        elif options.dynamicSizeType == DynamicSizeType.FIXED_NOTCH_SIZE:
-            notchSize = options.fixedNotchSize
+        elif dynamicSizeType == DynamicSizeType.FIXED_NOTCH_SIZE:
+            notchSize = fixedNotchSize
             fingerSize = (size - totalGapSize - numNotches * notchSize) / numFingers
-        elif options.dynamicSizeType == DynamicSizeType.FIXED_FINGER_SIZE:
-            fingerSize = options.fixedFingerSize
+        elif dynamicSizeType == DynamicSizeType.FIXED_FINGER_SIZE:
+            fingerSize = fixedFingerSize
             notchSize = (size - totalGapSize - numFingers * fingerSize) / numNotches
     else: # Both fingers and notches are dynamically sized.
 
         # If fingers and notches have the same size, this size depends only on their placement and the minimal length.
-        if options.dynamicSizeType == DynamicSizeType.EQUAL_NOTCH_AND_FINGER_SIZE:
+        if dynamicSizeType == DynamicSizeType.EQUAL_NOTCH_AND_FINGER_SIZE:
             # Across the size of the piece, we have to distribute F fingers, N notches and (F + N - 1) gaps.
             # The gaps have a fixed size g and we get size = (F + N) * w + (F + N - 1) * g. Solving for (F + N) gives
             # the formula to calculate the maximal number of fingers and notches we can place.
-            maxNumFingersAndNotches = int((size + gapSize) / (options.minFingerSize + gapSize))
+            maxNumFingersAndNotches = int((size + gapSize) / (minFingerSize + gapSize))
             # If there are the same number of fingers and notches the number needs to be even, otherwise odd.
             # We treat the number as even (rounding down) and correct when the number was odd.
             numFingers = numNotches = int(maxNumFingersAndNotches / 2)
-            if options.placementType == PlacementType.FINGERS_OUTSIDE:
+            if placementType == PlacementType.FINGERS_OUTSIDE:
                 if maxNumFingersAndNotches % 2 == 1:
                     numFingers += 1
                 else:
                     numNotches -= 1
-            elif options.placementType == PlacementType.NOTCHES_OUTSIDE:
+            elif placementType == PlacementType.NOTCHES_OUTSIDE:
                 if maxNumFingersAndNotches % 2 == 1:
                     numNotches += 1
                 else:
@@ -205,19 +214,19 @@ def defineToolBodyDimensions(size, options):
             notchSize = fingerSize
 
         # Notches have a fixed size, only fingers are dynamically sized.
-        elif options.dynamicSizeType == DynamicSizeType.FIXED_NOTCH_SIZE:
-            notchSize = options.fixedNotchSize
+        elif dynamicSizeType == DynamicSizeType.FIXED_NOTCH_SIZE:
+            notchSize = fixedNotchSize
             # Depending on the placement, we either need an additional notch or an additional finger
             # (one less notch). 
             extraNotch = 0
-            if options.placementType == PlacementType.FINGERS_OUTSIDE:
+            if placementType == PlacementType.FINGERS_OUTSIDE:
                 extraNotch = -1
-            elif options.placementType == PlacementType.NOTCHES_OUTSIDE:
+            elif placementType == PlacementType.NOTCHES_OUTSIDE:
                 extraNotch = 1
             # Assuming we have F fingers of width f, N = F + x notches of width n, and G = (F + N - 1) gaps
             # of width g, the total size is size = F*f + (F+x)*n + (2F+x-1)*g.
             # Solving for F gives the number of fingers (rounding down because we used the minimal size for fingers).
-            numFingers = int((size - extraNotch*(notchSize + gapSize) + gapSize) / (notchSize + options.minFingerSize + 2 * gapSize))
+            numFingers = int((size - extraNotch*(notchSize + gapSize) + gapSize) / (notchSize + minFingerSize + 2 * gapSize))
             numNotches = numFingers + extraNotch
             if numFingers == 0:
                 return None, None
@@ -226,19 +235,19 @@ def defineToolBodyDimensions(size, options):
             fingerSize = (size - totalGapSize - numNotches * notchSize) / numFingers
 
         # Fingers have a fixed size, only notches are dynamically sized.
-        elif options.dynamicSizeType == DynamicSizeType.FIXED_FINGER_SIZE:
-            fingerSize = options.fixedFingerSize
+        elif dynamicSizeType == DynamicSizeType.FIXED_FINGER_SIZE:
+            fingerSize = fixedFingerSize
             # Depending on the placement, we either need an additional finger or an additional notch
             # (one less finger).
             extraFinger = 0
-            if options.placementType == PlacementType.FINGERS_OUTSIDE:
+            if placementType == PlacementType.FINGERS_OUTSIDE:
                 extraFinger = 1
-            elif options.placementType == PlacementType.NOTCHES_OUTSIDE:
+            elif placementType == PlacementType.NOTCHES_OUTSIDE:
                 extraFinger = -1
             # Assuming we have N notches of width n, F = N + x fingers of width f, and G = (F + N - 1) gaps
             # of width g, the total size is size = (N+x)*f + N*n + (2N+x-1)*g.
             # Solving for N gives the number of notches (rounding down because we used the minimal size for notches).
-            numNotches = int((size - extraFinger*(fingerSize + gapSize) + gapSize) / (fingerSize + options.minNotchSize + 2 * gapSize))
+            numNotches = int((size - extraFinger*(fingerSize + gapSize) + gapSize) / (fingerSize + minNotchSize + 2 * gapSize))
             numFingers = numNotches + extraFinger
             if numNotches == 0:
                 return None, None
@@ -257,7 +266,7 @@ def defineToolBodyDimensions(size, options):
         return None, None
 
     # Now that number and size of fingers and notches are defined, we set the position of the first finger.
-    if options.placementType in [PlacementType.FINGERS_OUTSIDE, PlacementType.SAME_NUMBER_START_FINGER]:
+    if placementType in [PlacementType.FINGERS_OUTSIDE, PlacementType.SAME_NUMBER_START_FINGER]:
         fingerStart = 0
         notchStart = fingerSize + gapSize
     else:

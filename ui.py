@@ -2,7 +2,7 @@ import traceback
 
 import adsk.core
 
-from .options import PlacementType, DynamicSizeType
+from .options import FingerJointFeatureInput, PlacementType, DynamicSizeType, FusionExpression
 
 class FingerJointUI(object):
     def __init__(self, inputs, defaults):
@@ -70,22 +70,22 @@ class FingerJointUI(object):
              DynamicSizeType.EQUAL_NOTCH_AND_FINGER_SIZE,
         ]
 
-        defaultNotchSize = adsk.core.ValueInput.createByReal(defaults.fixedNotchSize)
+        defaultNotchSize = adsk.core.ValueInput.createByString(defaults.fixedNotchSize.expression)
         self._inputFixedNotchSize = inputs.addValueInput('inputFixedNotchSize', 'Notch Size', defaultUnit, defaultNotchSize)
 
-        defaultFingerSize = adsk.core.ValueInput.createByReal(defaults.fixedFingerSize)
+        defaultFingerSize = adsk.core.ValueInput.createByString(defaults.fixedFingerSize.expression)
         self._inputFixedFingerSize = inputs.addValueInput('inputFixedFingerSize', 'Finger Size', defaultUnit, defaultFingerSize)
 
-        defaultMinNotchSize = adsk.core.ValueInput.createByReal(defaults.minNotchSize)
+        defaultMinNotchSize = adsk.core.ValueInput.createByString(defaults.minNotchSize.expression)
         self._inputMinNotchSize = inputs.addValueInput('inputMinNotchSize', 'Minimal Notch Size', defaultUnit, defaultMinNotchSize)
 
-        defaultMinFingerSize = adsk.core.ValueInput.createByReal(defaults.minFingerSize)
+        defaultMinFingerSize = adsk.core.ValueInput.createByString(defaults.minFingerSize.expression)
         self._inputMinFingerSize = inputs.addValueInput('inputMinFingerSize', 'Minimal Finger Size', defaultUnit, defaultMinFingerSize)
 
-        defaultGap = adsk.core.ValueInput.createByReal(defaults.gap)
+        defaultGap = adsk.core.ValueInput.createByString(defaults.gap.expression)
         self._inputGap = inputs.addValueInput('inputGap', 'Gap between fingers', defaultUnit, defaultGap)
 
-        defaultGapToPart = adsk.core.ValueInput.createByReal(defaults.gapToPart)
+        defaultGapToPart = adsk.core.ValueInput.createByString(defaults.gapToPart.expression)
         self._inputGapToPart = inputs.addValueInput('inputGapToPart', 'Gap to part\n(experimental)', defaultUnit, defaultGapToPart)
 
         self._inputIsPreviewEnabled = inputs.addBoolValueInput('inputIsPreviewEnabled', 'Show Preview', True, '', defaults.isPreviewEnabled)
@@ -96,9 +96,9 @@ class FingerJointUI(object):
         self.updateVisibility()
         self.focusNextSelectionInput()
 
-    def _getDistanceInputValue(self, input):
+    def _getDistanceExpression(self, input):
         if input.isVisible and input.isValidExpression:
-            return input.value
+            return FusionExpression(input.expression)
 
     def updateVisibility(self):
         dynamicSizeType = self.getDynamicSizeType()
@@ -135,22 +135,22 @@ class FingerJointUI(object):
         return self._dynamicSizeTypesByIndex[self._inputDynamicSizeType.selectedItem.index]
 
     def getFixedNotchSize(self):
-        return self._getDistanceInputValue(self._inputFixedNotchSize)
+        return self._getDistanceExpression(self._inputFixedNotchSize)
 
     def getFixedFingerSize(self):
-        return self._getDistanceInputValue(self._inputFixedFingerSize)
+        return self._getDistanceExpression(self._inputFixedFingerSize)
 
     def getMinNotchSize(self):
-        return self._getDistanceInputValue(self._inputMinNotchSize)
+        return self._getDistanceExpression(self._inputMinNotchSize)
 
     def getMinFingerSize(self):
-        return self._getDistanceInputValue(self._inputMinFingerSize)
+        return self._getDistanceExpression(self._inputMinFingerSize)
 
     def getGap(self):
-        return self._getDistanceInputValue(self._inputGap)
+        return self._getDistanceExpression(self._inputGap)
 
     def getGapToPart(self):
-        return self._getDistanceInputValue(self._inputGapToPart)
+        return self._getDistanceExpression(self._inputGapToPart)
 
     def isPreviewEnabled(self):
         return self._inputIsPreviewEnabled.value
@@ -176,24 +176,29 @@ class FingerJointUI(object):
                 input.hasFocus = True
                 break
 
-    def setRelevantOptions(self, options):
-        options.dynamicSizeType = self.getDynamicSizeType()
-        options.placementType = self.getPlacementType()
-        options.isNumberOfFingersFixed = self.isNumberOfFingersFixed()
+    def createInputs(self):
+        inputs = FingerJointFeatureInput()
+        inputs.body0 = self.getBody0()
+        inputs.body1 = self.getBody1()
+        inputs.direction = self.getDirection()
+        inputs.dynamicSizeType = self.getDynamicSizeType()
+        inputs.placementType = self.getPlacementType()
+        inputs.isNumberOfFingersFixed = self.isNumberOfFingersFixed()
         # Only update the options that are relevant for the current operation.
         if self.getFixedNumFingers() is not None:
-            options.fixedNumFingers = self.getFixedNumFingers()
+            inputs.fixedNumFingers = self.getFixedNumFingers()
         if self.getFixedNotchSize() is not None:
-            options.fixedNotchSize = self.getFixedNotchSize()
+            inputs.fixedNotchSize = self.getFixedNotchSize()
         if self.getFixedFingerSize() is not None:
-            options.fixedFingerSize = self.getFixedFingerSize()
+            inputs.fixedFingerSize = self.getFixedFingerSize()
         if self.getMinNotchSize() is not None:
-            options.minNotchSize = self.getMinNotchSize()
+            inputs.minNotchSize = self.getMinNotchSize()
         if self.getMinFingerSize() is not None:
-            options.minFingerSize = self.getMinFingerSize()
-        options.gap = self.getGap()
-        options.gapToPart = self.getGapToPart()
-        options.isPreviewEnabled = self.isPreviewEnabled()
+            inputs.minFingerSize = self.getMinFingerSize()
+        inputs.gap = self.getGap()
+        inputs.gapToPart = self.getGapToPart()
+        inputs.isPreviewEnabled = self.isPreviewEnabled()
+        return inputs
 
     def areInputsValid(self):
         valid = True
@@ -201,13 +206,13 @@ class FingerJointUI(object):
         if self.getPlacementType() == PlacementType.FINGERS_OUTSIDE and self.isNumberOfFingersFixed() and self.getFixedNumFingers() < 2:
             valid = False
             errorMessage = 'When using one finger on each edge, there have to be at least two fingers.'
-        if self._inputFixedNotchSize.isVisible and (self.getFixedNotchSize() is None or self.getFixedNotchSize() <= 0):
+        if self._inputFixedNotchSize.isVisible and (self.getFixedNotchSize() is None or self.getFixedNotchSize().value <= 0):
             valid = False
-        if self._inputFixedFingerSize.isVisible and (self.getFixedFingerSize() is None or self.getFixedFingerSize() <= 0):
+        if self._inputFixedFingerSize.isVisible and (self.getFixedFingerSize() is None or self.getFixedFingerSize().value <= 0):
             valid = False
-        if self._inputMinNotchSize.isVisible and (self.getMinNotchSize() is None or self.getMinNotchSize() <= 0):
+        if self._inputMinNotchSize.isVisible and (self.getMinNotchSize() is None or self.getMinNotchSize().value <= 0):
             valid = False
-        if self._inputMinFingerSize.isVisible and (self.getMinFingerSize() is None or self.getMinFingerSize() <= 0):
+        if self._inputMinFingerSize.isVisible and (self.getMinFingerSize() is None or self.getMinFingerSize().value <= 0):
             valid = False
         self.setInputErrorMessage(errorMessage)
         return valid

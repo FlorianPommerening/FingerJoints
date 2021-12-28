@@ -43,8 +43,9 @@ def createCutFeature(parentComponent, targetBody, toolBodyFeature):
 class CreateFingerJointCommand(commands.RunningCommandBase):
     def __init__(self, args: adsk.core.CommandCreatedEventArgs):
         super(CreateFingerJointCommand, self).__init__(args)
-        self.options = options.FingerJointOptions()
-        self.ui = ui.FingerJointUI(args.command.commandInputs, self.options)
+        defaults = options.FingerJointFeatureInput()
+        self.ui = ui.FingerJointUI(args.command.commandInputs, defaults)
+        self.last_used_inputs = defaults
 
     def onInputChanged(self, args: adsk.core.InputChangedEventArgs):
         self.ui.updateVisibility()
@@ -69,11 +70,9 @@ class CreateFingerJointCommand(commands.RunningCommandBase):
             args.executeFailedMessage = 'Finger joints could not be completed. Try selecting overlapping bodies and double-check the dimensions.'
 
     def doExecute(self):
-        self.ui.setRelevantOptions(self.options)
-        body0 = self.ui.getBody0()
-        body1 = self.ui.getBody1()
-        direction = self.ui.getDirection()
-        toolBodies = geometry.createToolBodies(body0, body1, direction, self.options)
+        inputs = self.ui.createInputs()
+        self.last_used_inputs = inputs
+        toolBodies = geometry.createToolBodies(inputs)
         if toolBodies == True:
             # No cut is neccessary (bodies do not overlap).
             return True
@@ -81,23 +80,23 @@ class CreateFingerJointCommand(commands.RunningCommandBase):
             # No cut is possible (e.g., because of invalid inputs).
             return False
         else:
-            self.createCustomFeature(body0, body1, *toolBodies)
+            self.createCustomFeature(inputs, *toolBodies)
             return True
 
-    def createCustomFeature(self, body0, body1, toolBody0, toolBody1):
+    def createCustomFeature(self, inputs, toolBody0, toolBody1):
         app = adsk.core.Application.get()
         activeComponent = app.activeProduct.activeComponent
         # We will later group all created features into a custom feature.
         # For that reason, we have to remember the first and last feature that is part of this group.
         tool0Feature = createBaseFeature(activeComponent, toolBody0, "tool0")
-        createCutFeature(activeComponent, body0, tool0Feature)
+        createCutFeature(activeComponent, inputs.body0, tool0Feature)
         tool1Feature = createBaseFeature(activeComponent, toolBody1, "tool1")
-        createCutFeature(activeComponent, body1, tool1Feature)
+        createCutFeature(activeComponent, inputs.body1, tool1Feature)
 
     def onDestroy(self, args: adsk.core.CommandEventArgs):
         super(CreateFingerJointCommand, self).onDestroy(args)
         if args.terminationReason == adsk.core.CommandTerminationReason.CompletedTerminationReason:
-            self.options.writeDefaults()
+            self.last_used_inputs.writeDefaults()
 
 
 class FingerJointAddIn(commands.AddIn):

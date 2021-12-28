@@ -18,22 +18,49 @@ class PlacementType:
     SAME_NUMBER_START_FINGER = 'same number of fingers and notches (start with finger)'
     SAME_NUMBER_START_NOTCH = 'same number of fingers and notches (start with notch)'
 
+class FusionExpression(object):
+    def __init__(self, expression):
+        self._expression = expression
 
-class FingerJointOptions(object):
+    @property
+    def expression(self):
+        return self._expression
+
+    @expression.setter
+    def expression(self, value):
+        self._expression = value
+
+    @property
+    def value(self):
+        unitsManager = adsk.core.Application.get().activeProduct.unitsManager
+        return unitsManager.evaluateExpression(self._expression)
+
+# Fusion distinguishes three types of parameters:
+#  (1) Entities (objects in the design) are saved as dependencies.
+#  (2) Values (numerical parameters, booleans?) are saved as custom parameters.
+#  (3) Settings (choices in select boxes) are saved as named values.
+# We want to keep track of all of them and store default values for values and settings.
+class FingerJointFeatureInput(object):
     DEFAULTS_FILENAME = os.path.join(APP_PATH, 'defaults.json')
     DEFAULTS_DATA = {}
 
     def __init__(self):
+        # Entities
+        self.body0 = None
+        self.body1 = None
+        self.direction = None
+        # Settings
         self.dynamicSizeType = DynamicSizeType.EQUAL_NOTCH_AND_FINGER_SIZE
         self.placementType = PlacementType.FINGERS_OUTSIDE
+        # Values
         self.isNumberOfFingersFixed = False
-        self.fixedFingerSize = 2
-        self.fixedNotchSize = 2
-        self.minFingerSize = 2
-        self.minNotchSize = 2
+        self.fixedFingerSize = FusionExpression("20 mm")
+        self.fixedNotchSize = FusionExpression("20 mm")
+        self.minFingerSize = FusionExpression("20 mm")
+        self.minNotchSize = FusionExpression("20 mm")
         self.fixedNumFingers = 3
-        self.gap = 0
-        self.gapToPart = 0
+        self.gap = FusionExpression("0 mm")
+        self.gapToPart = FusionExpression("0 mm")
         self.isPreviewEnabled = True
         self.readDefaults()
 
@@ -42,13 +69,13 @@ class FingerJointOptions(object):
             'dynamicSizeType': self.dynamicSizeType,
             'placementType': self.placementType,
             'isNumberOfFingersFixed': self.isNumberOfFingersFixed,
-            'fixedFingerSize': self.fixedFingerSize,
-            'fixedNotchSize': self.fixedNotchSize,
-            'minFingerSize': self.minFingerSize,
-            'minNotchSize': self.minNotchSize,
+            'fixedFingerSize': self.fixedFingerSize.expression,
+            'fixedNotchSize': self.fixedNotchSize.expression,
+            'minFingerSize': self.minFingerSize.expression,
+            'minNotchSize': self.minNotchSize.expression,
             'fixedNumFingers': self.fixedNumFingers,
-            'gap': self.gap,
-            'gapToPart': self.gapToPart,
+            'gap': self.gap.expression,
+            'gapToPart': self.gapToPart.expression,
             'isPreviewEnabled': self.isPreviewEnabled,
         }
         with open(self.DEFAULTS_FILENAME, 'w', encoding='UTF-8') as json_file:
@@ -66,12 +93,12 @@ class FingerJointOptions(object):
         self.dynamicSizeType = defaultData.get('dynamicSizeType', self.dynamicSizeType)
         self.placementType = defaultData.get('placementType', self.placementType)
         self.isNumberOfFingersFixed = defaultData.get('isNumberOfFingersFixed', self.isNumberOfFingersFixed)
-        self.fixedFingerSize = defaultData.get('fixedFingerSize', self.fixedFingerSize)
-        self.fixedNotchSize = defaultData.get('fixedNotchSize', self.fixedNotchSize)
-        self.minFingerSize = defaultData.get('minFingerSize', self.minFingerSize)
-        self.minNotchSize = defaultData.get('minNotchSize', self.minNotchSize)
+        self.fixedFingerSize.expression = defaultData.get('fixedFingerSize', self.fixedFingerSize.expression)
+        self.fixedNotchSize.expression = defaultData.get('fixedNotchSize', self.fixedNotchSize.expression)
+        self.minFingerSize.expression = defaultData.get('minFingerSize', self.minFingerSize.expression)
+        self.minNotchSize.expression = defaultData.get('minNotchSize', self.minNotchSize.expression)
         self.fixedNumFingers = defaultData.get('fixedNumFingers', self.fixedNumFingers)
-        self.gap = defaultData.get('gap', self.gap)
-        self.gapToPart = defaultData.get('gapToPart', self.gapToPart)
+        self.gap.expression = defaultData.get('gap', self.gap.expression)
+        self.gapToPart.expression = defaultData.get('gapToPart', self.gapToPart.expression)
         self.isPreviewEnabled = defaultData.get('isPreviewEnabled', self.isPreviewEnabled)
 
