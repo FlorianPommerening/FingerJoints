@@ -97,8 +97,10 @@ class FingerJointUI(object):
         self.focusNextSelectionInput()
 
     def _getDistanceExpression(self, input):
-        if input.isVisible and input.isValidExpression:
-            return FusionExpression(input.expression)
+        if input.isVisible:
+            expression = FusionExpression(input.expression)
+            if expression.isValid:
+                return expression
 
     def updateVisibility(self):
         dynamicSizeType = self.getDynamicSizeType()
