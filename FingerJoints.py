@@ -131,11 +131,12 @@ class CreateFingerJointCommand(FingerJointCommand):
 
         # Create an object holding the inputs, parameters, and dependencies for the new custom feature.
         customFeatureInput = activeComponent.features.customFeatures.createInput(
-            self.customFeatureDefinition, firstFeature, lastFeature)
+            self.customFeatureDefinition)
         self.options.storeInParameters(customFeatureInput)
         customFeatureInput.addDependency('body0', body0)
         customFeatureInput.addDependency('body1', body1)
         customFeatureInput.addDependency('direction', direction)
+        customFeatureInput.setStartAndEndFeatures(firstFeature, lastFeature)
 
         # Create the custom feature.
         activeComponent.features.customFeatures.add(customFeatureInput)
