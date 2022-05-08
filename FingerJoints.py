@@ -86,12 +86,20 @@ class CreateFingerJointCommand(commands.RunningCommandBase):
     def createCustomFeature(self, inputs, toolBody0, toolBody1):
         app = adsk.core.Application.get()
         activeComponent = app.activeProduct.activeComponent
+        design = activeComponent.parentDesign
+
+        # Temporarily switch to parametric design
+        previousDesignType = design.designType
+        design.designType = adsk.fusion.DesignTypes.ParametricDesignType
+
         # We will later group all created features into a custom feature.
         # For that reason, we have to remember the first and last feature that is part of this group.
         tool0Feature = createBaseFeature(activeComponent, toolBody0, "tool0")
         createCutFeature(activeComponent, inputs.body0, tool0Feature)
         tool1Feature = createBaseFeature(activeComponent, toolBody1, "tool1")
         createCutFeature(activeComponent, inputs.body1, tool1Feature)
+
+        design.designType = previousDesignType
 
     def onDestroy(self, args: adsk.core.CommandEventArgs):
         super(CreateFingerJointCommand, self).onDestroy(args)
