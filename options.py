@@ -1,22 +1,27 @@
 import json
 import os
+from typing import Optional, Union
 
 import adsk.core
+import adsk.fusion
 
-from . import ui
+from . import util
 
 APP_PATH = os.path.dirname(os.path.abspath(__file__))
+
 
 class DynamicSizeType:
     FIXED_NOTCH_SIZE = 'fixed notch size'
     FIXED_FINGER_SIZE = 'fixed finger size'
     EQUAL_NOTCH_AND_FINGER_SIZE = 'equal notch and finger size'
 
+
 class PlacementType:
     FINGERS_OUTSIDE = 'fingers outside'
     NOTCHES_OUTSIDE = 'notches outside'
     SAME_NUMBER_START_FINGER = 'same number of fingers and notches (start with finger)'
     SAME_NUMBER_START_NOTCH = 'same number of fingers and notches (start with notch)'
+
 
 class FusionExpression(object):
     def __init__(self, expression):
@@ -52,9 +57,9 @@ class FingerJointFeatureInput(object):
 
     def __init__(self):
         # Entities
-        self.body0 = None
-        self.body1 = None
-        self.direction = None
+        self.body0: Optional[adsk.fusion.BRepBody] = None
+        self.body1: Optional[adsk.fusion.BRepBody] = None
+        self.direction: Optional[Union[adsk.fusion.SketchLine]] = None
         # Settings
         self.dynamicSizeType = DynamicSizeType.EQUAL_NOTCH_AND_FINGER_SIZE
         self.placementType = PlacementType.FINGERS_OUTSIDE
@@ -71,7 +76,33 @@ class FingerJointFeatureInput(object):
         self.readDefaults()
 
     def writeDefaults(self):
-        defaultData = {
+        with open(self.DEFAULTS_FILENAME, 'w', encoding='UTF-8') as json_file:
+            json.dump(self.data(), json_file, ensure_ascii=False)
+
+    def asJson(self) -> str:
+        return json.dumps(self.data())
+
+    @classmethod
+    def fromJson(cls, data: str) -> "FingerJointFeatureInput":
+        data = json.loads(data)
+
+        input = FingerJointFeatureInput()
+        input.dynamicSizeType = data['dynamicSizeType']
+        input.placementType = data['placementType']
+        input.isNumberOfFingersFixed = data['isNumberOfFingersFixed']
+        input.fixedFingerSize = FusionExpression(data['fixedFingerSize'])
+        input.fixedNotchSize = FusionExpression(data['fixedNotchSize'])
+        input.minFingerSize = FusionExpression(data['minFingerSize'])
+        input.minNotchSize = FusionExpression(data['minNotchSize'])
+        input.fixedNumFingers = data['fixedNumFingers']
+        input.gap = FusionExpression(data['gap'])
+        input.gapToPart = FusionExpression(data['gapToPart'])
+        input.isPreviewEnabled = data['isPreviewEnabled']
+
+        return input
+
+    def data(self):
+        return {
             'dynamicSizeType': self.dynamicSizeType,
             'placementType': self.placementType,
             'isNumberOfFingersFixed': self.isNumberOfFingersFixed,
@@ -84,9 +115,7 @@ class FingerJointFeatureInput(object):
             'gapToPart': self.gapToPart.expression,
             'isPreviewEnabled': self.isPreviewEnabled,
         }
-        with open(self.DEFAULTS_FILENAME, 'w', encoding='UTF-8') as json_file:
-            json.dump(defaultData, json_file, ensure_ascii=False)
-    
+
     def readDefaults(self):
         def expressionOrDefault(value, default):
             expression = FusionExpression(value)
@@ -101,7 +130,7 @@ class FingerJointFeatureInput(object):
             try:
                 defaultData = json.load(json_file)
             except ValueError:
-                ui.reportError('Cannot read default options. Invalid JSON in "%s":' % self.DEFAULTS_FILENAME)
+                util.reportError('Cannot read default options. Invalid JSON in "%s":' % self.DEFAULTS_FILENAME)
 
         self.dynamicSizeType = defaultData.get('dynamicSizeType', self.dynamicSizeType)
         self.placementType = defaultData.get('placementType', self.placementType)
@@ -114,4 +143,3 @@ class FingerJointFeatureInput(object):
         self.gap = expressionOrDefault(defaultData.get('gap'), self.gap)
         self.gapToPart = expressionOrDefault(defaultData.get('gapToPart'), self.gapToPart)
         self.isPreviewEnabled = defaultData.get('isPreviewEnabled', self.isPreviewEnabled)
-
