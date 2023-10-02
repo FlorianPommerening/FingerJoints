@@ -1,3 +1,5 @@
+from typing import Union, cast
+
 import adsk.core
 import adsk.fusion
 
@@ -93,7 +95,7 @@ def createToolBody(body, slices, inputs, debug=False):
 
     if debug:
         app = adsk.core.Application.get()
-        root = app.activeProduct.rootComponent
+        root = cast(adsk.fusion.Design, app.activeProduct).rootComponent
         feature = root.features.baseFeatures.add()
         feature.startEdit()
         root.bRepBodies.add(targetBody, feature)
@@ -130,7 +132,7 @@ def createBodyFromOverlap(body0, body1):
     return overlapBody
 
 
-def createToolBodies(inputs):
+def createToolBodies(inputs) -> Union[bool, tuple[adsk.fusion.BRepBody, adsk.fusion.BRepBody]]:
     overlap = createBodyFromOverlap(inputs.body0, inputs.body1)
     coordinateSystem = CoordinateSystem(inputs.direction, overlap)
     coordinateSystem.transformToLocalCoordinates(overlap)

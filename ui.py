@@ -4,6 +4,7 @@ import adsk.core
 
 from .options import FingerJointFeatureInput, PlacementType, DynamicSizeType, FusionExpression
 
+
 class FingerJointUI(object):
     def __init__(self, inputs, defaults):
         app = adsk.core.Application.get()
@@ -218,11 +219,3 @@ class FingerJointUI(object):
             valid = False
         self.setInputErrorMessage(errorMessage)
         return valid
-
-
-def reportError(message, includeStacktrace=False):
-    fusion = adsk.core.Application.get()
-    fusionUI = fusion.userInterface
-    if includeStacktrace:
-        message = '{}\n\nStack trace:\n{}'.format(message, traceback.format_exc())
-    fusionUI.messageBox(message)
